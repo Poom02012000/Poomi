@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>เกมเซลล์และการทำงานของเซลล์ | ชีววิทยา ม.4</title>
+<style>
+  :root{
+    --bg1:#0f172a; --bg2:#1e293b; --card:#1e293b; --card2:#273449;
+    --ink:#e8eefc; --muted:#9fb0cc; --line:#33425e;
+    --green:#22c55e; --red:#ef4444; --amber:#f59e0b;
+    --p1:#6366f1; --p2:#22d3ee; --plant:#34d399; --animal:#f472b6; --both:#c4b5fd;
+    --pro:#fbbf24; --eu:#60a5fa;
+    --shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light){
+    :root{
+      --bg1:#eef2ff; --bg2:#e0e7ff; --card:#ffffff; --card2:#f1f5f9;
+      --ink:#0f172a; --muted:#5b6b88; --line:#dbe3f0; --shadow:0 10px 30px rgba(30,41,59,.12);
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:"Sarabun","Prompt","Noto Sans Thai","Leelawadee UI","Tahoma",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:linear-gradient(160deg,var(--bg1),var(--bg2));
+    color:var(--ink); min-height:100%;
+    -webkit-font-smoothing:antialiased; line-height:1.55;
+    padding:16px; display:flex; justify-content:center;
+  }
+  .app{width:100%; max-width:820px}
+
+  /* Header */
+  header{text-align:center; margin:8px 0 18px}
+  .kicker{display:inline-block; font-size:13px; letter-spacing:.5px; color:var(--muted);
+    background:var(--card); border:1px solid var(--line); padding:4px 12px; border-radius:999px}
+  h1{font-size:clamp(22px,5vw,32px); margin:10px 0 4px; line-height:1.25}
+  h1 .em{background:linear-gradient(90deg,var(--p1),var(--p2)); -webkit-background-clip:text;
+    background-clip:text; color:transparent}
+  .sub{color:var(--muted); font-size:14px}
+
+  /* Progress bar */
+  .scorebar{display:flex; align-items:center; gap:12px; background:var(--card);
+    border:1px solid var(--line); border-radius:14px; padding:12px 16px; margin-bottom:16px; box-shadow:var(--shadow)}
+  .scorebar .lbl{font-size:13px; color:var(--muted)}
+  .scorebar .val{font-weight:700; font-size:18px}
+  .bar{flex:1; height:10px; background:var(--card2); border-radius:999px; overflow:hidden}
+  .bar>span{display:block; height:100%; width:0%; border-radius:999px;
+    background:linear-gradient(90deg,var(--p1),var(--p2)); transition:width .5s ease}
+
+  /* Cards / menu */
+  .grid{display:grid; grid-template-columns:1fr; gap:14px}
+  @media(min-width:620px){.grid{grid-template-columns:1fr 1fr}}
+  .menu-card{background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:20px; cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s;
+    box-shadow:var(--shadow); position:relative; overflow:hidden}
+  .menu-card:hover{transform:translateY(-3px); border-color:var(--p1)}
+  .menu-card .ic{font-size:34px}
+  .menu-card h3{font-size:18px; margin:8px 0 4px}
+  .menu-card p{color:var(--muted); font-size:13.5px}
+  .menu-card .tag{position:absolute; top:14px; right:14px; font-size:12px; color:var(--muted);
+    background:var(--card2); border:1px solid var(--line); padding:3px 9px; border-radius:999px}
+  .menu-card.done{border-color:var(--green)}
+  .menu-card.done .tag{color:var(--green); border-color:var(--green)}
+  .menu-card.full{grid-column:1/-1; background:linear-gradient(135deg,var(--card),var(--card2))}
+
+  /* Screen container */
+  .screen{background:var(--card); border:1px solid var(--line); border-radius:18px;
+    padding:20px; box-shadow:var(--shadow)}
+  .screen-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px}
+  .screen-head h2{font-size:19px}
+  .screen-head .q{color:var(--muted); font-size:13px}
+  .btn{font-family:inherit; font-size:14px; font-weight:600; border-radius:10px; cursor:pointer;
+    border:1px solid var(--line); background:var(--card2); color:var(--ink); padding:9px 16px; transition:.15s}
+  .btn:hover{border-color:var(--p1)}
+  .btn.primary{background:linear-gradient(90deg,var(--p1),var(--p2)); color:#fff; border:none}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.5; cursor:not-allowed}
+  .toolbar{display:flex; gap:10px; flex-wrap:wrap; margin-top:18px}
+
+  /* Matching game */
+  .match-wrap{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+  .col-title{font-size:13px; color:var(--muted); margin-bottom:8px; text-align:center}
+  .opt{display:flex; align-items:center; gap:8px; width:100%; text-align:left; margin-bottom:9px;
+    background:var(--card2); border:1px solid var(--line); border-radius:12px; padding:11px 13px;
+    cursor:pointer; font-family:inherit; font-size:14px; color:var(--ink); transition:.12s}
+  .opt:hover:not(:disabled){border-color:var(--p1)}
+  .opt.sel{border-color:var(--p2); box-shadow:0 0 0 2px rgba(34,211,238,.3)}
+  .opt.ok{border-color:var(--green); background:rgba(34,197,94,.14); cursor:default}
+  .opt.bad{animation:shake .4s}
+  .opt .em{font-size:20px}
+  .opt:disabled{cursor:default}
+  @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+
+  /* Classify / quiz */
+  .prompt-card{text-align:center; padding:26px 18px; background:var(--card2); border:1px solid var(--line);
+    border-radius:16px; margin-bottom:16px}
+  .prompt-card .big{font-size:22px; font-weight:700; margin-top:6px}
+  .prompt-card .em{font-size:40px}
+  .choices{display:grid; gap:10px}
+  @media(min-width:520px){.choices.c3{grid-template-columns:1fr 1fr 1fr}.choices.c2{grid-template-columns:1fr 1fr}}
+  .choice{padding:14px; border-radius:13px; border:1.5px solid var(--line); background:var(--card2);
+    color:var(--ink); font-family:inherit; font-size:15px; font-weight:600; cursor:pointer; transition:.12s}
+  .choice:hover:not(:disabled){transform:translateY(-2px); border-color:var(--p1)}
+  .choice.ok{border-color:var(--green); background:rgba(34,197,94,.16)}
+  .choice.bad{border-color:var(--red); background:rgba(239,68,68,.14)}
+  .choice:disabled{cursor:default}
+  .feedback{margin-top:14px; padding:13px 15px; border-radius:12px; font-size:14px; display:none}
+  .feedback.show{display:block}
+  .feedback.right{background:rgba(34,197,94,.12); border:1px solid var(--green)}
+  .feedback.wrong{background:rgba(239,68,68,.1); border:1px solid var(--red)}
+  .feedback b{color:var(--p2)}
+
+  /* Ordering game */
+  .order-target{min-height:60px; display:flex; flex-wrap:wrap; gap:8px; padding:12px;
+    background:var(--card2); border:1px dashed var(--line); border-radius:14px; margin-bottom:14px}
+  .slot{font-size:13px; color:var(--muted); padding:8px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--card)}
+  .slot.filled{color:var(--ink); border-color:var(--green); background:rgba(34,197,94,.12); font-weight:600}
+  .pool{display:flex; flex-wrap:wrap; gap:10px}
+  .tile{padding:12px 14px; border-radius:12px; border:1px solid var(--line); background:var(--card2);
+    cursor:pointer; font-family:inherit; font-size:14px; font-weight:600; color:var(--ink); transition:.12s; text-align:left}
+  .tile .d{display:block; font-size:12px; color:var(--muted); font-weight:400; margin-top:2px}
+  .tile:hover:not(:disabled){border-color:var(--p1); transform:translateY(-2px)}
+  .tile.used{opacity:.35; cursor:default}
+  .tile.bad{animation:shake .4s; border-color:var(--red)}
+
+  /* Result */
+  .result{text-align:center; padding:20px}
+  .result .medal{font-size:64px}
+  .result h2{font-size:24px; margin:6px 0}
+  .result .score{font-size:40px; font-weight:800;
+    background:linear-gradient(90deg,var(--p1),var(--p2)); -webkit-background-clip:text; background-clip:text; color:transparent}
+  .stars{font-size:30px; letter-spacing:4px; margin:8px 0}
+  .msg{color:var(--muted); margin:10px auto; max-width:460px}
+
+  footer{text-align:center; color:var(--muted); font-size:12px; margin-top:22px; line-height:1.7}
+  .hide{display:none!important}
+  .pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <span class="kicker">ชีววิทยา ม.4 เทอม 1 · ตามหลักสูตร สสวท.</span>
+    <h1>🔬 เกม <span class="em">เซลล์และการทำงานของเซลล์</span></h1>
+    <p class="sub">เรียนรู้ผ่านการเล่น 4 ด่าน · โครงสร้างเซลล์ · การเปรียบเทียบเซลล์ · การแบ่งเซลล์</p>
+  </header>
+
+  <div class="scorebar">
+    <div><div class="lbl">คะแนนรวม</div><div class="val"><span id="score">0</span> / <span id="maxScore">0</span></div></div>
+    <div class="bar"><span id="barFill"></span></div>
+    <div><div class="lbl">ด่านผ่าน</div><div class="val"><span id="doneCount">0</span>/4</div></div>
+  </div>
+
+  <!-- MENU -->
+  <div id="menu" class="grid"></div>
+
+  <!-- GAME SCREEN -->
+  <div id="game" class="screen hide"></div>
+
+  <footer>
+    สร้างเพื่อการศึกษา · เนื้อหาอ้างอิงหลักสูตรแกนกลาง (ฉบับปรับปรุง พ.ศ. 2560) กลุ่มสาระวิทยาศาสตร์ สสวท.<br>
+    เฉลยทุกข้อมีคำอธิบายและจุดที่มักเข้าใจผิด · ไอคอนเป็นสัญลักษณ์ประกอบ ไม่ใช่ภาพเซลล์จริง
+  </footer>
+</div>
+
+<script>
+/* ============================ ข้อมูลเนื้อหา (ตรวจสอบตามหลัก สสวท.) ============================ */
+
+// ด่าน 1: จับคู่ออร์แกเนลล์กับหน้าที่
+const ORGANELLES = [
+  {em:'🧠', name:'นิวเคลียส', func:'ควบคุมกิจกรรมของเซลล์ และเก็บสารพันธุกรรม (DNA)',
+    note:'มีเยื่อหุ้มนิวเคลียส 2 ชั้น พบเฉพาะเซลล์ยูคาริโอต ภายในมีนิวคลีโอลัสสร้างหน่วยย่อยไรโบโซม'},
+  {em:'🔋', name:'ไมโทคอนเดรีย', func:'เปลี่ยนพลังงานในสารอาหารให้เป็น ATP (การหายใจระดับเซลล์)',
+    note:'มีเยื่อ 2 ชั้น เยื่อชั้นในพับเป็นคริสตี พบทั้งเซลล์พืชและสัตว์ — พลังงานไม่ได้ถูก"สร้างใหม่" แต่ถูกเปลี่ยนรูป'},
+  {em:'🌿', name:'คลอโรพลาสต์', func:'สังเคราะห์ด้วยแสง สร้างอาหาร (น้ำตาล) จากแสง',
+    note:'พบเฉพาะเซลล์พืชและสาหร่าย มีคลอโรฟิลล์ ภายในมีไทลาคอยด์เรียงเป็นกรานุมและของเหลวสโตรมา'},
+  {em:'🏭', name:'ร่างแหเอนโดพลาซึมแบบขรุขระ (RER)',
+    func:'สังเคราะห์โปรตีน (มีไรโบโซมเกาะที่ผิว)',
+    note:'RER มีไรโบโซมเกาะจึงขรุขระ ส่วน SER (แบบเรียบ) สร้างลิพิดและกำจัดสารพิษ'},
+  {em:'📦', name:'กอลจิคอมเพล็กซ์', func:'ดัดแปลง คัดแยก และบรรจุสารเพื่อส่งออกจากเซลล์',
+    note:'เปรียบเสมือน "ศูนย์ไปรษณีย์" รับโปรตีนจาก ER มาแต่งเติมแล้วบรรจุใส่ถุง'},
+  {em:'♻️', name:'ไลโซโซม', func:'ย่อยสลายสารและออร์แกเนลล์ที่เสื่อมสภาพ (มีเอนไซม์ย่อย)',
+    note:'พบเด่นในเซลล์สัตว์ ในเซลล์พืชงานย่อยส่วนหนึ่งทำโดยแวคิวโอล'},
+  {em:'⚙️', name:'ไรโบโซม', func:'เป็นแหล่งสังเคราะห์โปรตีน (แปลรหัสจาก mRNA)',
+    note:'ไม่มีเยื่อหุ้ม พบทั้งโพรคาริโอต (70S) และยูคาริโอต (80S)'},
+  {em:'💧', name:'แวคิวโอล (กลาง) ในเซลล์พืช', func:'เก็บน้ำและสารละลาย รักษาความเต่ง (turgor)',
+    note:'ในเซลล์พืชมีขนาดใหญ่มาก ดันให้เซลล์เต่ง ในเซลล์สัตว์มีขนาดเล็กหรือไม่มี'},
+];
+
+// ด่าน 2A: เซลล์พืช / สัตว์ / ทั้งสอง
+const PLANT_ANIMAL = [
+  {t:'ผนังเซลล์ (เซลลูโลส)', a:'plant', why:'เซลล์พืชมีผนังเซลล์เซลลูโลสอยู่นอกเยื่อหุ้มเซลล์ ให้ความแข็งแรงและรูปร่าง เซลล์สัตว์ไม่มี'},
+  {t:'คลอโรพลาสต์', a:'plant', why:'พบเฉพาะเซลล์พืชและสาหร่ายที่สังเคราะห์ด้วยแสง เซลล์สัตว์ไม่มี'},
+  {t:'แวคิวโอลกลางขนาดใหญ่', a:'plant', why:'เซลล์พืชโตเต็มวัยมักมีแวคิวโอลกลางขนาดใหญ่มาก ช่วยรักษาความเต่ง'},
+  {t:'เซนทริโอลที่เห็นชัดเจน', a:'animal', why:'เซลล์สัตว์มีเซนทริโอลช่วยสร้างเส้นใยสปินเดิล ส่วนพืชดอกส่วนใหญ่ไม่มีเซนทริโอล'},
+  {t:'ไลโซโซมจำนวนมาก', a:'animal', why:'พบเด่นชัดในเซลล์สัตว์ ในพืชงานย่อยสลายส่วนใหญ่ทำโดยแวคิวโอล'},
+  {t:'ไมโทคอนเดรีย', a:'both', why:'มีทั้งเซลล์พืชและสัตว์ เพราะทั้งคู่ต้องหายใจระดับเซลล์ (พืชไม่ได้มีแค่คลอโรพลาสต์!)'},
+  {t:'เยื่อหุ้มเซลล์', a:'both', why:'ทุกเซลล์มีเยื่อหุ้มเซลล์ควบคุมการผ่านเข้าออกของสาร'},
+  {t:'นิวเคลียส', a:'both', why:'เซลล์พืชและสัตว์เป็นยูคาริโอต จึงมีนิวเคลียสแท้ทั้งคู่'},
+  {t:'กอลจิคอมเพล็กซ์', a:'both', why:'พบทั้งสองชนิด ทำหน้าที่บรรจุและส่งสาร'},
+];
+
+// ด่าน 2B: โพรคาริโอต / ยูคาริโอต / ทั้งสอง
+const PRO_EU = [
+  {t:'มีเยื่อหุ้มนิวเคลียส (นิวเคลียสแท้)', a:'eu', why:'เฉพาะยูคาริโอตที่มีนิวเคลียสแท้ห่อหุ้มด้วยเยื่อ'},
+  {t:'DNA อยู่ในบริเวณนิวคลีออยด์ ไม่มีเยื่อหุ้ม', a:'pro', why:'โพรคาริโอตมี DNA แต่ไม่มีเยื่อหุ้มนิวเคลียส DNA รวมอยู่บริเวณนิวคลีออยด์'},
+  {t:'มีออร์แกเนลล์ที่มีเยื่อหุ้ม (เช่น ไมโทคอนเดรีย)', a:'eu', why:'โพรคาริโอตไม่มีออร์แกเนลล์ที่มีเยื่อหุ้ม'},
+  {t:'ไรโบโซมชนิด 80S (ในไซโทพลาซึม)', a:'eu', why:'ยูคาริโอตมีไรโบโซม 80S ส่วนโพรคาริโอตเป็น 70S'},
+  {t:'ตัวอย่างคือ แบคทีเรีย', a:'pro', why:'แบคทีเรียและอาร์เคียเป็นโพรคาริโอต'},
+  {t:'มีสารพันธุกรรม DNA', a:'both', why:'ทุกเซลล์มี DNA เป็นสารพันธุกรรม — โพรคาริโอตก็มี เพียงไม่มีเยื่อหุ้มนิวเคลียส'},
+  {t:'มีไรโบโซม', a:'both', why:'ทั้งสองมีไรโบโซมเพื่อสังเคราะห์โปรตีน (ต่างกันที่ชนิด 70S/80S)'},
+  {t:'มีเยื่อหุ้มเซลล์และไซโทพลาซึม', a:'both', why:'เป็นโครงสร้างพื้นฐานที่ทุกเซลล์มี'},
+];
+
+// ด่าน 3: เรียงลำดับการแบ่งเซลล์แบบไมโทซิส
+const MITOSIS = [
+  {n:1, name:'อินเตอร์เฟส', em:'🔵', d:'เซลล์เติบโตและจำลอง DNA (ระยะ S)'},
+  {n:2, name:'โพรเฟส', em:'🧬', d:'โครมาทินขดเป็นโครโมโซม เยื่อหุ้มนิวเคลียสสลาย สร้างเส้นใยสปินเดิล'},
+  {n:3, name:'เมทาเฟส', em:'➖', d:'โครโมโซมเรียงตัวกลางเซลล์'},
+  {n:4, name:'แอนาเฟส', em:'↔️', d:'โครมาทิดพี่น้องแยกไปยังขั้วตรงข้าม'},
+  {n:5, name:'เทโลเฟส', em:'⭕', d:'โครโมโซมถึงขั้ว เยื่อหุ้มนิวเคลียสก่อตัวใหม่'},
+  {n:6, name:'ไซโทไคเนซิส', em:'✂️', d:'แบ่งไซโทพลาซึม ได้เซลล์ลูก 2 เซลล์เหมือนเดิม'},
+];
+
+// ด่าน 4: แบบทดสอบรวม
+const QUIZ = [
+  {q:'ออร์แกเนลล์ใดทำหน้าที่ "เปลี่ยนพลังงานในสารอาหารให้เป็น ATP"?',
+   opts:['คลอโรพลาสต์','ไมโทคอนเดรีย','กอลจิคอมเพล็กซ์','ไลโซโซม'], ans:1,
+   why:'ไมโทคอนเดรียเป็นแหล่งการหายใจระดับเซลล์ เปลี่ยนพลังงานในสารอาหารเป็น ATP (พลังงานถูกเปลี่ยนรูป ไม่ได้สร้างขึ้นใหม่)'},
+  {q:'DNA ถูกจำลองตัว (replication) ในระยะใด?',
+   opts:['ระยะ S ของอินเตอร์เฟส','โพรเฟส','เมทาเฟส','แอนาเฟส'], ans:0,
+   why:'DNA จำลองตัวในระยะ S ของอินเตอร์เฟส ก่อนเข้าสู่ไมโทซิส — ไม่ใช่จำลองในโพรเฟสอย่างที่หลายคนเข้าใจผิด'},
+  {q:'ในระยะแอนาเฟส (Anaphase) เกิดเหตุการณ์ใด?',
+   opts:['โครโมโซมเรียงกลางเซลล์','โครมาทิดพี่น้องแยกจากกันไปคนละขั้ว','เยื่อหุ้มนิวเคลียสสลาย','แบ่งไซโทพลาซึม'], ans:1,
+   why:'แอนาเฟส = โครมาทิดพี่น้อง (sister chromatids) แยกจากกันที่เซนโทรเมียร์ เคลื่อนไปยังขั้วตรงข้าม'},
+  {q:'ข้อใดเป็นลักษณะของเซลล์ "โพรคาริโอต"?',
+   opts:['มีนิวเคลียสแท้','ไม่มีเยื่อหุ้มนิวเคลียส DNA อยู่บริเวณนิวคลีออยด์','มีไมโทคอนเดรีย','มีไรโบโซม 80S'], ans:1,
+   why:'โพรคาริโอต (เช่น แบคทีเรีย) ไม่มีเยื่อหุ้มนิวเคลียสและไม่มีออร์แกเนลล์ที่มีเยื่อหุ้ม แต่ยังมี DNA และไรโบโซม (70S)'},
+  {q:'โครงสร้างใดพบใน "เซลล์พืช" แต่ไม่พบในเซลล์สัตว์?',
+   opts:['ไมโทคอนเดรีย','ไรโบโซม','ผนังเซลล์และคลอโรพลาสต์','เยื่อหุ้มเซลล์'], ans:2,
+   why:'ผนังเซลล์ (เซลลูโลส) และคลอโรพลาสต์พบเฉพาะในเซลล์พืช ส่วนไมโทคอนเดรีย ไรโบโซม และเยื่อหุ้มเซลล์มีทั้งสองชนิด'},
+  {q:'ผลลัพธ์ของการแบ่งเซลล์แบบไมโทซิส 1 ครั้ง คือข้อใด?',
+   opts:['เซลล์ลูก 4 เซลล์ จำนวนโครโมโซมลดครึ่ง','เซลล์ลูก 2 เซลล์ ที่เหมือนเซลล์แม่','เซลล์ลูก 2 เซลล์ ที่ต่างจากเซลล์แม่','เซลล์ลูก 4 เซลล์ ที่เหมือนกัน'], ans:1,
+   why:'ไมโทซิสได้เซลล์ลูก 2 เซลล์ ที่มีจำนวนโครโมโซมและสารพันธุกรรมเท่าเดิมและเหมือนเซลล์แม่ (ส่วน 4 เซลล์ที่ลดครึ่งคือไมโอซิส)'},
+  {q:'การแบ่งไซโทพลาซึม (cytokinesis) ในเซลล์พืชต่างจากสัตว์อย่างไร?',
+   opts:['พืชคอดเว้าเข้า สัตว์สร้างแผ่นกั้น','พืชสร้างเซลล์เพลท (แผ่นกั้นกลางเซลล์) เพราะมีผนังเซลล์','พืชไม่มีการแบ่งไซโทพลาซึม','ทั้งสองเหมือนกันทุกประการ'], ans:1,
+   why:'เซลล์พืชมีผนังเซลล์จึงสร้างเซลล์เพลทกลางเซลล์แล้วขยายออก ส่วนเซลล์สัตว์ใช้การคอดเว้า (cleavage furrow)'},
+  {q:'RER (ร่างแหเอนโดพลาซึมแบบขรุขระ) ขรุขระเพราะเหตุใด?',
+   opts:['มีไลโซโซมเกาะ','มีไรโบโซมเกาะที่ผิว','มีคลอโรฟิลล์','มีผนังหนา'], ans:1,
+   why:'RER มีไรโบโซมเกาะที่ผิวจึงดูขรุขระ และทำหน้าที่สังเคราะห์โปรตีน ส่วน SER ที่ไม่มีไรโบโซมจะเรียบและสร้างลิพิด'},
+];
+
+/* ============================ ระบบเกม ============================ */
+const LEVELS = [
+  {id:'match', ic:'🧩', title:'ด่าน 1 · จับคู่ออร์แกเนลล์', desc:'จับคู่ออร์แกเนลล์กับหน้าที่ให้ถูกต้อง', max:ORGANELLES.length},
+  {id:'classify', ic:'🌱', title:'ด่าน 2 · จำแนกเซลล์', desc:'พืช/สัตว์ และ โพรคาริโอต/ยูคาริโอต', max:PLANT_ANIMAL.length+PRO_EU.length},
+  {id:'order', ic:'🔄', title:'ด่าน 3 · เรียงลำดับไมโทซิส', desc:'เรียงระยะการแบ่งเซลล์ให้ถูกลำดับ', max:MITOSIS.length},
+  {id:'quiz', ic:'📝', title:'ด่าน 4 · แบบทดสอบรวม', desc:'ทบทวนความรู้ทั้งหมด พร้อมเฉลย', max:QUIZ.length},
+];
+const state = {score:0, done:{}, levelScore:{}};
+const $ = s=>document.querySelector(s);
+const menu=$('#menu'), game=$('#game');
+const totalMax = LEVELS.reduce((a,l)=>a+l.max,0);
+
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function updateBar(){
+  $('#score').textContent=state.score; $('#maxScore').textContent=totalMax;
+  $('#barFill').style.width=(totalMax? state.score/totalMax*100:0)+'%';
+  $('#doneCount').textContent=Object.keys(state.done).length;
+}
+function addScore(n){state.score+=n; updateBar();}
+
+function renderMenu(){
+  game.classList.add('hide'); menu.classList.remove('hide');
+  menu.innerHTML='';
+  LEVELS.forEach(l=>{
+    const done=state.done[l.id];
+    const c=document.createElement('div');
+    c.className='menu-card'+(done?' done':'');
+    c.innerHTML=`<span class="tag">${done?'✓ '+state.levelScore[l.id]+'/'+l.max:l.max+' ข้อ'}</span>
+      <div class="ic">${l.ic}</div><h3>${l.title}</h3><p>${l.desc}</p>`;
+    c.onclick=()=>START[l.id]();
+    menu.appendChild(c);
+  });
+  // final card
+  if(Object.keys(state.done).length===LEVELS.length){
+    const c=document.createElement('div');
+    c.className='menu-card full';
+    c.innerHTML=`<div class="ic">🏆</div><h3>ดูผลรวมทั้งหมด</h3><p>คุณเล่นครบทุกด่านแล้ว! ดูสรุปคะแนนและระดับเหรียญ</p>`;
+    c.onclick=showFinal;
+    menu.appendChild(c);
+  }
+  updateBar();
+}
+function openScreen(html){menu.classList.add('hide'); game.classList.remove('hide'); game.innerHTML=html; window.scrollTo({top:0,behavior:'smooth'});}
+function finishLevel(id, gained){
+  state.done[id]=true; state.levelScore[id]=gained;
+}
+
+/* ---------- ด่าน 1: จับคู่ ---------- */
+function startMatch(){
+  const data=ORGANELLES; let selL=null, matched=0, gained=0;
+  const left=shuffle(data.map((d,i)=>({...d,i})));
+  const right=shuffle(data.map((d,i)=>({...d,i})));
+  openScreen(`
+    <div class="screen-head"><h2>🧩 จับคู่ออร์แกเนลล์กับหน้าที่</h2><span class="q"><span id="mc">0</span>/${data.length} คู่</span></div>
+    <p class="q" style="margin-bottom:14px">แตะออร์แกเนลล์ทางซ้าย แล้วแตะหน้าที่ทางขวาที่คู่กัน</p>
+    <div class="match-wrap">
+      <div><div class="col-title">ออร์แกเนลล์</div><div id="colL"></div></div>
+      <div><div class="col-title">หน้าที่</div><div id="colR"></div></div>
+    </div>
+    <div id="mfb" class="feedback"></div>
+    <div class="toolbar"><button class="btn ghost" id="back">← เมนู</button></div>`);
+  $('#back').onclick=renderMenu;
+  const colL=$('#colL'), colR=$('#colR');
+  left.forEach(d=>{const b=document.createElement('button');b.className='opt';b.dataset.i=d.i;
+    b.innerHTML=`<span class="em">${d.em}</span><span>${d.name}</span>`;
+    b.onclick=()=>{if(b.classList.contains('ok'))return; document.querySelectorAll('#colL .opt').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); selL=b;};
+    colL.appendChild(b);});
+  right.forEach(d=>{const b=document.createElement('button');b.className='opt';b.dataset.i=d.i;
+    b.innerHTML=`<span>${d.func}</span>`;
+    b.onclick=()=>{
+      if(b.classList.contains('ok'))return;
+      if(!selL){flash('เลือกออร์แกเนลล์ทางซ้ายก่อนนะ','');return;}
+      if(selL.dataset.i===b.dataset.i){
+        selL.classList.remove('sel'); selL.classList.add('ok'); b.classList.add('ok');
+        selL.disabled=true; b.disabled=true; matched++; gained++; addScore(1);
+        $('#mc').textContent=matched;
+        const info=ORGANELLES[b.dataset.i];
+        flash(`✅ ถูกต้อง! <b>${info.name}</b> — ${info.note}`,'right');
+        selL=null;
+        if(matched===data.length){finishLevel('match',gained); setTimeout(()=>flash(`🎉 ครบทุกคู่! ได้ ${gained}/${data.length} คะแนน`,'right'),50); showNext();}
+      } else {
+        b.classList.add('bad'); const bad=selL; setTimeout(()=>b.classList.remove('bad'),400);
+        flash('❌ ยังไม่ใช่คู่ที่ถูก ลองใหม่อีกครั้ง','wrong');
+      }
+    };
+    colR.appendChild(b);});
+  function flash(msg,type){const f=$('#mfb');f.className='feedback show '+(type||'');f.innerHTML=msg;}
+  function showNext(){const t=$('.toolbar');t.innerHTML=`<button class="btn primary" id="nx">ด่านถัดไป →</button><button class="btn ghost" id="bk">เมนู</button>`;
+    $('#nx').onclick=renderMenu;$('#bk').onclick=renderMenu;}
+}
+
+/* ---------- ด่าน 2: จำแนก ---------- */
+function startClassify(){
+  const roundA=shuffle(PLANT_ANIMAL).map(x=>({...x,mode:'pa'}));
+  const roundB=shuffle(PRO_EU).map(x=>({...x,mode:'pe'}));
+  const items=[...roundA,...roundB];
+  let idx=0, gained=0;
+  const labels={plant:'พืชเท่านั้น',animal:'สัตว์เท่านั้น',both:'ทั้งสองชนิด',pro:'โพรคาริโอต',eu:'ยูคาริโอต'};
+  function render(){
+    if(idx>=items.length){finishLevel('classify',gained); return done();}
+    const it=items[idx];
+    const opts = it.mode==='pa' ? ['plant','animal','both'] : ['pro','eu','both'];
+    const head = it.mode==='pa' ? 'เซลล์พืช vs เซลล์สัตว์' : 'โพรคาริโอต vs ยูคาริโอต';
+    openScreen(`
+      <div class="screen-head"><h2>🌱 จำแนกเซลล์</h2><span class="q">ข้อ ${idx+1}/${items.length} · คะแนน ${gained}</span></div>
+      <p class="q" style="margin-bottom:6px"><span class="pill" style="background:var(--card2);border:1px solid var(--line)">${head}</span></p>
+      <div class="prompt-card"><div class="q">โครงสร้าง/ลักษณะนี้พบใน...</div><div class="big">${it.t}</div></div>
+      <div class="choices c3" id="ch"></div>
+      <div id="fb" class="feedback"></div>
+      <div class="toolbar hide" id="tb"><button class="btn primary" id="nx">ถัดไป →</button></div>`);
+    const ch=$('#ch');
+    opts.forEach(o=>{const b=document.createElement('button');b.className='choice';b.textContent=labels[o];
+      b.onclick=()=>pick(o,b,opts,it);ch.appendChild(b);});
+  }
+  function pick(o,btn,opts,it){
+    document.querySelectorAll('#ch .choice').forEach(x=>x.disabled=true);
+    const fb=$('#fb'), tb=$('#tb');
+    if(o===it.a){btn.classList.add('ok');gained++;addScore(1);fb.className='feedback show right';fb.innerHTML='✅ ถูกต้อง! '+it.why;}
+    else{btn.classList.add('bad');
+      document.querySelectorAll('#ch .choice').forEach((x,i)=>{if(opts[i]===it.a)x.classList.add('ok');});
+      fb.className='feedback show wrong';fb.innerHTML=`❌ คำตอบที่ถูกคือ <b>${labels[it.a]}</b> — ${it.why}`;}
+    tb.classList.remove('hide');
+    $('#nx').textContent = idx===items.length-1 ? 'ดูสรุปด่าน →' : 'ถัดไป →';
+    $('#nx').onclick=()=>{idx++;render();};
+  }
+  function done(){
+    openScreen(resultBlock('🌱','จบด่านจำแนกเซลล์',gained,items.length));
+    $('#rmenu').onclick=renderMenu;
+  }
+  render();
+}
+
+/* ---------- ด่าน 3: เรียงลำดับไมโทซิส ---------- */
+function startOrder(){
+  const correct=MITOSIS; let next=0, gained=0, wrongOnce=false;
+  const pool=shuffle(correct);
+  openScreen(`
+    <div class="screen-head"><h2>🔄 เรียงลำดับการแบ่งเซลล์ (ไมโทซิส)</h2><span class="q"><span id="oc">0</span>/${correct.length}</span></div>
+    <p class="q" style="margin-bottom:10px">แตะการ์ดตามลำดับที่ถูกต้อง ตั้งแต่ระยะแรกจนถึงระยะสุดท้าย</p>
+    <div class="order-target" id="tgt"></div>
+    <div class="pool" id="pool"></div>
+    <div id="ofb" class="feedback"></div>
+    <div class="toolbar"><button class="btn ghost" id="back">← เมนู</button></div>`);
+  $('#back').onclick=renderMenu;
+  const tgt=$('#tgt'), poolEl=$('#pool');
+  for(let i=0;i<correct.length;i++){const s=document.createElement('div');s.className='slot';s.id='slot'+i;s.textContent=(i+1)+'.';tgt.appendChild(s);}
+  pool.forEach(d=>{const b=document.createElement('button');b.className='tile';b.dataset.n=d.n;
+    b.innerHTML=`${d.em} ${d.name}<span class="d">${d.d}</span>`;
+    b.onclick=()=>{
+      if(b.classList.contains('used'))return;
+      const expected=correct[next].n;
+      if(d.n===expected){
+        b.classList.add('used');
+        const slot=$('#slot'+next);slot.className='slot filled';slot.innerHTML=`${(next+1)}. ${d.em} ${d.name}`;
+        next++; gained++; addScore(1); $('#oc').textContent=next;
+        flash(`✅ ถูกต้อง! ${d.name} — ${d.d}`,'right');
+        if(next===correct.length){finishLevel('order',gained);flash(`🎉 เรียงครบถูกต้อง! ได้ ${gained}/${correct.length} คะแนน`,'right');
+          const t=$('.toolbar');t.innerHTML='<button class="btn primary" id="nx">เสร็จสิ้น →</button>';$('#nx').onclick=renderMenu;}
+      } else {
+        b.classList.add('bad');setTimeout(()=>b.classList.remove('bad'),400);
+        const want=correct[next];
+        flash(`❌ ลำดับถัดไปยังไม่ใช่ระยะนี้ ลองนึกถึงว่าอะไรเกิดก่อน (ระยะที่ ${next+1})`,'wrong');
+      }
+    };
+    poolEl.appendChild(b);});
+  function flash(msg,type){const f=$('#ofb');f.className='feedback show '+type;f.innerHTML=msg;}
+}
+
+/* ---------- ด่าน 4: แบบทดสอบ ---------- */
+function startQuiz(){
+  const qs=shuffle(QUIZ); let idx=0, gained=0;
+  function render(){
+    if(idx>=qs.length){finishLevel('quiz',gained);return done();}
+    const it=qs[idx];
+    openScreen(`
+      <div class="screen-head"><h2>📝 แบบทดสอบรวม</h2><span class="q">ข้อ ${idx+1}/${qs.length} · คะแนน ${gained}</span></div>
+      <div class="prompt-card"><div class="big" style="font-size:18px">${it.q}</div></div>
+      <div class="choices" id="ch"></div>
+      <div id="fb" class="feedback"></div>
+      <div class="toolbar hide" id="tb"><button class="btn primary" id="nx">ถัดไป →</button></div>`);
+    const ch=$('#ch');
+    it.opts.forEach((o,i)=>{const b=document.createElement('button');b.className='choice';b.style.textAlign='left';b.textContent=o;
+      b.onclick=()=>pick(i,b,it);ch.appendChild(b);});
+  }
+  function pick(i,btn,it){
+    document.querySelectorAll('#ch .choice').forEach(x=>x.disabled=true);
+    const fb=$('#fb');
+    if(i===it.ans){btn.classList.add('ok');gained++;addScore(1);fb.className='feedback show right';fb.innerHTML='✅ ถูกต้อง! '+it.why;}
+    else{btn.classList.add('bad');document.querySelectorAll('#ch .choice')[it.ans].classList.add('ok');
+      fb.className='feedback show wrong';fb.innerHTML=`❌ คำตอบที่ถูกคือ <b>${it.opts[it.ans]}</b> — ${it.why}`;}
+    const tb=$('#tb');tb.classList.remove('hide');
+    $('#nx').textContent=idx===qs.length-1?'ดูสรุปด่าน →':'ถัดไป →';
+    $('#nx').onclick=()=>{idx++;render();};
+  }
+  function done(){openScreen(resultBlock('📝','จบแบบทดสอบรวม',gained,qs.length));$('#rmenu').onclick=renderMenu;}
+  render();
+}
+
+/* ---------- ผลลัพธ์ ---------- */
+function resultBlock(em,title,got,max){
+  const pct=got/max; const stars=pct>=.9?3:pct>=.6?2:pct>=.3?1:0;
+  const star='★★★☆☆☆'.slice(0,0); // placeholder
+  const starStr='★'.repeat(stars)+'☆'.repeat(3-stars);
+  const msg=pct>=.9?'เยี่ยมมาก! แม่นเนื้อหาสุด ๆ':pct>=.6?'ทำได้ดี! ทบทวนจุดที่พลาดอีกนิดจะเพอร์เฟกต์':'สู้ ๆ ลองเล่นซ้ำเพื่อทบทวนเนื้อหานะ';
+  return `<div class="result">
+    <div class="medal">${em}</div><h2>${title}</h2>
+    <div class="stars">${starStr}</div>
+    <div class="score">${got} / ${max}</div>
+    <p class="msg">${msg}</p>
+    <div class="toolbar" style="justify-content:center"><button class="btn primary" id="rmenu">กลับเมนู →</button></div>
+  </div>`;
+}
+function showFinal(){
+  const got=state.score, max=totalMax; const pct=got/max;
+  const medal=pct>=.9?'🥇':pct>=.7?'🥈':pct>=.5?'🥉':'🎖️';
+  const stars=pct>=.9?5:pct>=.75?4:pct>=.6?3:pct>=.4?2:1;
+  openScreen(`<div class="result">
+    <div class="medal">${medal}</div>
+    <h2>สรุปผลรวมทั้งหมด</h2>
+    <div class="stars">${'★'.repeat(stars)}${'☆'.repeat(5-stars)}</div>
+    <div class="score">${got} / ${max}</div>
+    <p class="msg">${pct>=.9?'สุดยอด! คุณเข้าใจเรื่องเซลล์อย่างลึกซึ้ง 🎉':pct>=.6?'เก่งมาก! อีกนิดเดียวก็เต็มแล้ว ลองทบทวนด่านที่ยังพลาด':'เริ่มต้นได้ดี ลองเล่นซ้ำเพื่อเก็บคะแนนให้ครบนะ 💪'}</p>
+    <div class="toolbar" style="justify-content:center">
+      <button class="btn primary" id="rmenu">กลับเมนู</button>
+      <button class="btn ghost" id="reset">เริ่มใหม่ทั้งหมด</button>
+    </div></div>`);
+  $('#rmenu').onclick=renderMenu;
+  $('#reset').onclick=()=>{state.score=0;state.done={};state.levelScore={};renderMenu();};
+}
+
+const START={match:startMatch, classify:startClassify, order:startOrder, quiz:startQuiz};
+renderMenu();
+</script>
+</body>
+</html>
